@@ -1,59 +1,89 @@
 <?php
 
 	require_once dirname(__FILE__) . '/lib/proxy.php';
+	require_once dirname(__FILE__) . '/lib/html.php';
 	require_once dirname(__FILE__) . '/lib/simple_html_dom.php';
 
 	
-	$save_dir = getcwd() . '/image/catalog/';		//Директория для сохранения файлов
-	$img_download = true;							// Скачивать картинки или нет		
-	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
+	$save_dir = getcwd() . '/image/catalog/';		//Р”РёСЂРµРєС‚РѕСЂРёСЏ РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ С„Р°Р№Р»РѕРІ
+	$img_download = true;							// РЎРєР°С‡РёРІР°С‚СЊ РєР°СЂС‚РёРЅРєРё РёР»Рё РЅРµС‚		
+	$k = 3;											// РРЅРґРµРєСЃ РІ РјР°СЃСЃРёРІРµ $arr_all РїРѕ РєРѕС‚РѕСЂРѕРјСѓ РїСЂРѕРёР·РІРѕРґРёРјРј РІС‹Р±РѕСЂРєСѓ
+	$site = 'http://stl-partner.ru';
 
 	$arr_all = array(
-						array("59","Мойки","http://stl-partner.ru/index.php?route=product/category&path=592"),
-						array("60","Смесители","http://stl-partner.ru/index.php?route=product/category&path=590"),
-						array("61","Варочные поверхности","http://stl-partner.ru/index.php?route=product/category&path=619"),
-						array("62","Духовые шкафы","http://stl-partner.ru/index.php?route=product/category&path=617"),
-						array("63","Вытяжки","http://stl-partner.ru/index.php?route=product/category&path=641")
+						array("59","РњРѕР№РєРё","http://stl-partner.ru/index.php?route=product/category&path=592"),
+						array("60","РЎРјРµСЃРёС‚РµР»Рё","http://stl-partner.ru/index.php?route=product/category&path=590"),
+						array("61","Р’Р°СЂРѕС‡РЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё","http://stl-partner.ru/index.php?route=product/category&path=619"),
+						array("62","Р”СѓС…РѕРІС‹Рµ С€РєР°С„С‹","http://stl-partner.ru/index.php?route=product/category&path=617"),
+						array("63","Р’С‹С‚СЏР¶РєРё","http://stl-partner.ru/index.php?route=product/category&path=641")
 	);
 
-
+		
+insert_html();
+		
+function main($load_catalog) {
+		//ob_start();
+		global $arr_all;
+		
 		$arr_1 = array();
 		$arr_2 = array();
-				
-		$arr_1 = get_page_count($arr_all[$k][0],$arr_all[$k][2]);
+		$m = 0;	//СЃС‡РµС‚С‡РёРє РґР»СЏ РїСЂРѕРіСЂРµСЃСЃ Р±Р°СЂР°
+		
+		$arr_1 = get_page_count($arr_all[$load_catalog][0],$arr_all[$load_catalog][2]);
 
-		// Первый цикл получаем массив ссылок на страницы КАТАЛОГА (ID каталога + ссылка страницу каталога) по одной категории из $arr_all
+		// РџРµСЂРІС‹Р№ С†РёРєР» РїРѕР»СѓС‡Р°РµРј РјР°СЃСЃРёРІ СЃСЃС‹Р»РѕРє РЅР° СЃС‚СЂР°РЅРёС†С‹ РљРђРўРђР›РћР“Рђ (ID РєР°С‚Р°Р»РѕРіР° + СЃСЃС‹Р»РєР° СЃС‚СЂР°РЅРёС†Сѓ РєР°С‚Р°Р»РѕРіР°) РїРѕ РѕРґРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё РёР· $arr_all
 		
 		for ($i=0;$i<count($arr_1);$i++) {
 				
-				//echo $arr_1[$i][0] . "   " . $arr_1[$i][1] ."<br>";		//ID каталога + ссылка страницу каталога
+				//echo $arr_1[$i][0] . "   " . $arr_1[$i][1] ."<br>";		//ID РєР°С‚Р°Р»РѕРіР° + СЃСЃС‹Р»РєР° СЃС‚СЂР°РЅРёС†Сѓ РєР°С‚Р°Р»РѕРіР°
 				
 				$arr_2 = getItem($arr_1[$i][0],$arr_1[$i][1]);
 
 				
-				//Второй цикл получаем массив ссылок на страницы ТОРАРА (ID каталога + ID товара + ссылка на страницу товара) по одной категории из $arr_all
+				//Р’С‚РѕСЂРѕР№ С†РёРєР» РїРѕР»СѓС‡Р°РµРј РјР°СЃСЃРёРІ СЃСЃС‹Р»РѕРє РЅР° СЃС‚СЂР°РЅРёС†С‹ РўРћР РђР Рђ (ID РєР°С‚Р°Р»РѕРіР° + ID С‚РѕРІР°СЂР° + СЃСЃС‹Р»РєР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ С‚РѕРІР°СЂР°) РїРѕ РѕРґРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё РёР· $arr_all
 				for ($j=0;$j<count($arr_2);$j++) {
-					
-					echo $arr_2[$j]['catalog_id'] . " " . $arr_2[$j]['tovar_id'] . " " . $arr_2[$j]['price'] . " ". $arr_2[$j]['link'] ."<br>"; // ID каталога + ID товара + ссылка на страницу товара
+					$m = $m + 1;
+					//echo $arr_2[$j]['catalog_id'] . " " . $arr_2[$j]['tovar_id'] . " " . $arr_2[$j]['price'] . " ". $arr_2[$j]['link'] ."<br>"; // ID РєР°С‚Р°Р»РѕРіР° + ID С‚РѕРІР°СЂР° + СЃСЃС‹Р»РєР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ С‚РѕРІР°СЂР°
 						
 				}
-			
+				
+				echo '<script>
+					document.all.proc' . $load_catalog . '.innerHTML = "'. round((($i+1)*100/count($arr_1)),0)  .' % (' . $m . ')";
+					document.all.line' . $load_catalog . '.innerHTML = "'.CopyLine(($i+1)*100/count($arr_1)).'";
+					</script>';
+				ob_flush();
+				flush();
+	
 		}
 		
 		//var_dump($arr);
 				
 
-		//Закрываем соеденение
+		//Р—Р°РєСЂС‹РІР°РµРј СЃРѕРµРґРµРЅРµРЅРёРµ
 		curl_close($ch);
-	
+		
+		ob_end_clean(); 
+}
+		
+function CopyLine($num)
+{
+ flush();
+ 
+    for($i = 1;$i<$num;$i++)
+    {
+        $tmp = $tmp ."|";
+    }
+    return $tmp;
+}
 	
 //***********************************************************************************************
-// Функция подготовки массива страниц с товарами по каталогу
+// Р¤СѓРЅРєС†РёСЏ РїРѕРґРіРѕС‚РѕРІРєРё РјР°СЃСЃРёРІР° СЃС‚СЂР°РЅРёС† СЃ С‚РѕРІР°СЂР°РјРё РїРѕ РєР°С‚Р°Р»РѕРіСѓ
 //***********************************************************************************************	
 
 function get_page_count($id_cat,$url){	
 	
 		global $ch;
+		global $site;
 		
 		curl_setopt($ch, CURLOPT_URL, $url);
 		
@@ -90,9 +120,7 @@ function get_page_count($id_cat,$url){
 
 		
 		
-	} else {	
-		echo "Function: get_page_count(). Нет данных HTML на входе. DOM = NULL <br>";
-	}
+	} 
 	
 		return $arr_page;
 	
@@ -101,7 +129,7 @@ function get_page_count($id_cat,$url){
 
 
 //*******************************************************************************************************
-//Функция скачивания файла изображения
+//Р¤СѓРЅРєС†РёСЏ СЃРєР°С‡РёРІР°РЅРёСЏ С„Р°Р№Р»Р° РёР·РѕР±СЂР°Р¶РµРЅРёСЏ
 //*******************************************************************************************************		
 
 function save_img ($img_url) {		
@@ -120,7 +148,7 @@ function save_img ($img_url) {
 
 
 //*******************************************************************************************************
-// Функция сбора ID товара по указанному каталогу (цикл по всем страницам каталога)
+// Р¤СѓРЅРєС†РёСЏ СЃР±РѕСЂР° ID С‚РѕРІР°СЂР° РїРѕ СѓРєР°Р·Р°РЅРЅРѕРјСѓ РєР°С‚Р°Р»РѕРіСѓ (С†РёРєР» РїРѕ РІСЃРµРј СЃС‚СЂР°РЅРёС†Р°Рј РєР°С‚Р°Р»РѕРіР°)
 //*******************************************************************************************************		
 
 function list_item($catalog) {		
@@ -134,10 +162,10 @@ function list_item($catalog) {
 		$arr = array();
 
 
-		// подключаемся к SQL серверу
-		$link = mysqli_connect($host, $user, $password, $database) or die("Ошибка " . mysqli_error($link));
+		// РїРѕРґРєР»СЋС‡Р°РµРјСЃСЏ Рє SQL СЃРµСЂРІРµСЂСѓ
+		$link = mysqli_connect($host, $user, $password, $database) or die("РћС€РёР±РєР° " . mysqli_error($link));
 	
-			$query = 'select link, parent_id from bitrixshop.load_catalog where id_cat = "' . $catalog . '"' . $limit; //Не забыть убрать ЛИМИТ
+			$query = 'select link, parent_id from bitrixshop.load_catalog where id_cat = "' . $catalog . '"' . $limit; //РќРµ Р·Р°Р±С‹С‚СЊ СѓР±СЂР°С‚СЊ Р›РРњРРў
 			$result = mysqli_query($link, $query);
 			
 			while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
@@ -165,7 +193,7 @@ function list_item($catalog) {
 				
 			}
 
-		//Закрываем соединение с БД 
+		//Р—Р°РєСЂС‹РІР°РµРј СЃРѕРµРґРёРЅРµРЅРёРµ СЃ Р‘Р” 
 		mysqli_close($link);
 		
 		
@@ -176,7 +204,7 @@ function list_item($catalog) {
 
 
 //*******************************************************************************************************
-// Доп. функция для list_item() сбора ID товара с одной страницы. 
+// Р”РѕРї. С„СѓРЅРєС†РёСЏ РґР»СЏ list_item() СЃР±РѕСЂР° ID С‚РѕРІР°СЂР° СЃ РѕРґРЅРѕР№ СЃС‚СЂР°РЅРёС†С‹. 
 //*******************************************************************************************************		
 		
 function getItem($catalog_id = 0, $url) {	
@@ -191,38 +219,42 @@ function getItem($catalog_id = 0, $url) {
 		
 		$dom = str_get_html($html);
 		
-		$container = $dom->find('.grid_6');
+		if ($dom != null) {
 		
-		$i = 0;
-		
-			foreach($container as $item){
+				$container = $dom->find('.grid_6');
 				
-				$a = $item->find('.name a',0);
-				$str = $a->href;
-				sscanf(html_entity_decode($str), 'http://stl-partner.ru/index.php?route=product/product&path=%d&product_id=%d',$cat_num,$product_id);
+				$i = 0;
 				
-				$a = $item->find('.price',0);
-				$str_price = $a->plaintext;
-				
-				sscanf(html_entity_decode($str_price), '%d руб.',$price);
-				
-				if ( $product_id != null ) {
-									
-					//echo $catalog_id . "   ";					
-					$arr_tovar[$i]["catalog_id"] = $catalog_id;				//ID каталога
+					foreach($container as $item){
+						
+						$a = $item->find('.name a',0);
+						$str = $a->href;
+						sscanf(html_entity_decode($str), 'http://stl-partner.ru/index.php?route=product/product&path=%d&product_id=%d',$cat_num,$product_id);
+						
+						$a = $item->find('.price',0);
+						$str_price = $a->plaintext;
+						
+						sscanf(html_entity_decode($str_price), '%d СЂСѓР±.',$price);
+						
+						if ( $product_id != null ) {
+											
+							//echo $catalog_id . "   ";					
+							$arr_tovar[$i]["catalog_id"] = $catalog_id;				//ID РєР°С‚Р°Р»РѕРіР°
 
-					//echo $item->attr['data-id'] . "   ";		
-					$arr_tovar[$i]["tovar_id"] = $product_id;				//ID товара
+							//echo $item->attr['data-id'] . "   ";		
+							$arr_tovar[$i]["tovar_id"] = $product_id;				//ID С‚РѕРІР°СЂР°
 
-					//echo $site . $a->href . "<br>";			
-					$arr_tovar[$i]["link"] = $str;							// Ссылка на страницу товара
-					
-					$arr_tovar[$i]["price"] = $price;							// Цена товара
-				
-					$i = $i + 1;
-				}
-			}
-			
+							//echo $site . $a->href . "<br>";			
+							$arr_tovar[$i]["link"] = $str;							// РЎСЃС‹Р»РєР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ С‚РѕРІР°СЂР°
+							
+							$arr_tovar[$i]["price"] = $price;							// Р¦РµРЅР° С‚РѕРІР°СЂР°
+						
+							$i = $i + 1;
+						}
+					}
+		} else {
+			echo "РЎРµСЂРІРµСЂ <b>" . $site . "</b> РЅРµ РѕС‚РІРµС‡Р°РµС‚ :( <br>";
+		}	
 		return $arr_tovar;
 		
 }	

@@ -1,6 +1,13 @@
 <?php
-	$proxy = '10.247.19.22:9090';
-	$proxyauth = 'spb\eav:recf40vehf}|';
+//	$proxy = '10.247.19.22:9090';
+//	$proxyauth = 'spb\eav:recf40vehf}|';
+	$proxy = '188.165.141.151:80';  	//Finland
+	//$proxy = '46.37.193.74:8080';		//Ukraine
+	//$proxy = '94.23.200.49:3128';		//France
+	//$proxy = '86.57.177.11:1080';		//Belarus
+
+
+
 	$login  = 'admiral@mebelkerch.ru';
 	$pass = 'vertex';
 	$url_auth = 'http://stl-partner.ru/index.php?route=account/login';	
@@ -13,7 +20,7 @@
 	curl_setopt($ch, CURLOPT_REFERER, $referer);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_PROXY, $proxy);
-	curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxyauth);
+//	curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxyauth);
 	curl_setopt($ch, CURLOPT_COOKIEJAR, getcwd() . "/cookies.txt");
 	curl_setopt($ch, CURLOPT_COOKIEFILE, getcwd() . "/cookies.txt");
 	curl_setopt($ch, CURLOPT_POST, true);

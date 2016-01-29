@@ -1,11 +1,2 @@
 AddDefaultCharset UTF-8
 
-<Files main.php>
-AuthType Basic
-AuthName "Thats protected Area!"
-AuthUserFile /usr/host/mysite/.htpasswd
-Require valid-user
-</Files>
-<Files .htpasswd>
-   deny from all  #запрет доступа из браузера к .htpasswd
-</Files>
