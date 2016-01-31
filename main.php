@@ -1,14 +1,25 @@
 <?php
+//*****************************************************************************
+//  парсинг товаров сайта http://stl-partner.ru 
+//  Для сайта ТвояТехника.рф
+//*****************************************************************************
+
+
+
+	set_time_limit(0);		//Убираем лимит работы скрипта PHP
+
 
 	require_once dirname(__FILE__) . '/lib/proxy.php';
 	require_once dirname(__FILE__) . '/lib/html.php';
 	require_once dirname(__FILE__) . '/lib/simple_html_dom.php';
+	require_once dirname(__FILE__) . '/lib/PHPExcel.php';
 
 	
-	$save_dir = getcwd() . '/image/catalog/';		//Директория для сохранения файлов
-	$img_download = true;							// Скачивать картинки или нет		
+	$save_dir = getcwd() . '/image/catalog/';		// Директория для сохранения файлов
+	$img_download = false;							// Скачивать картинки или нет		
 	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
 	$site = 'http://stl-partner.ru';
+	$objPHPExcel = new PHPExcel();
 
 	$arr_all = array(
 						array("59","Мойки","http://stl-partner.ru/index.php?route=product/category&path=592"),
@@ -18,16 +29,43 @@
 						array("63","Вытяжки","http://stl-partner.ru/index.php?route=product/category&path=641")
 	);
 
-		
-insert_html();
-		
+	//Всавка HTML кода
+    insert_html();
+
+	
+	
+//***********************************************************************************************
+// Загрузка всех каталогов
+//***********************************************************************************************\
+
+function load_all () {
+	
+	global $arr_all;
+	
+	for ($i=0;$i<count($arr_all);$i++) {
+		main ($i);
+	}
+
+	
+}
+
+
+//***********************************************************************************************
+// Загрузка указанного каталога	
+//***********************************************************************************************
+
 function main($load_catalog) {
 		//ob_start();
 		global $arr_all;
+		global $objPHPExcel;
 		
 		$arr_1 = array();
 		$arr_2 = array();
+		$arr_tovar = array();
 		$m = 0;	//счетчик для прогресс бара
+		
+		start_excel ();	// Подготовка Excel файла
+		
 		
 		$arr_1 = get_page_count($arr_all[$load_catalog][0],$arr_all[$load_catalog][2]);
 
@@ -43,8 +81,40 @@ function main($load_catalog) {
 				//Второй цикл получаем массив ссылок на страницы ТОРАРА (ID каталога + ID товара + ссылка на страницу товара) по одной категории из $arr_all
 				for ($j=0;$j<count($arr_2);$j++) {
 					$m = $m + 1;
-					//echo $arr_2[$j]['catalog_id'] . " " . $arr_2[$j]['tovar_id'] . " " . $arr_2[$j]['price'] . " ". $arr_2[$j]['link'] ."<br>"; // ID каталога + ID товара + ссылка на страницу товара
-						
+					$d = $m + 1;
+					
+					$arr_tovar = get_tovar(html_entity_decode($arr_2[$j]['link']));
+					
+					save_img($arr_tovar['image']);		//Скачивает картинку товара
+					
+					$objPHPExcel->setActiveSheetIndex(0)
+					
+						->setCellValue('A'.$d, $arr_2[$j]['tovar_id'])
+						->setCellValue('B'.$d, str_replace('&quot;','"',$arr_2[$j]['name']))
+						->setCellValue('C'.$d, str_replace('&quot;','"',$arr_2[$j]['name']))
+						->setCellValue('D'.$d, $arr_2[$j]['catalog_id'])
+						->setCellValue('L'.$d, '100')
+						->setCellValue('M'.$d, $arr_2[$j]['tovar_id'])
+						->setCellValue('N'.$d, $arr_tovar['brand'])
+						->setCellValue('O'.$d, '/catalog/' . basename($arr_tovar['image']))
+						->setCellValue('P'.$d, 'yes')
+						->setCellValue('Q'.$d, $arr_2[$j]['price'])
+						->setCellValue('S'.$d, date('Y-m-d H:i:s'))
+						->setCellValue('T'.$d, date('Y-m-d H:i:s'))
+						->setCellValue('U'.$d, date('Y-m-d'))
+						->setCellValue('AB'.$d, 'true')
+						->setCellValue('AB'.$d, 'true')
+						->setCellValue('AC'.$d, '0')
+						//->setCellValue('AE'.$d, $arr[$j]["memo1"])
+						//->setCellValue('AF'.$d, $arr[$j]["memo1"])
+						->setCellValue('AM'.$d, '7')
+						->setCellValue('AN'.$d, '0')
+						->setCellValue('AS'.$d, '0')
+						->setCellValue('AT'.$d, 'true')
+						->setCellValue('AU'.$d, '1');
+					
+					//echo $arr_2[$j]['catalog_id'] . " " . $arr_2[$j]['tovar_id'] . " " . $arr_2[$j]['price'] . " " . $arr_2[$j]['name'] . " " . $arr_tovar['brand'] . " " . $arr_2[$j]['link'] . "<br>"; // ID каталога + ID товара + ссылка на страницу товара
+					
 				}
 				
 				echo '<script>
@@ -57,10 +127,11 @@ function main($load_catalog) {
 		}
 		
 		//var_dump($arr);
-				
+		
+		end_excel ();	// Сохранение Excel файла
 
 		//Закрываем соеденение
-		curl_close($ch);
+		//curl_close($ch);
 		
 		ob_end_clean(); 
 }
@@ -75,6 +146,50 @@ function CopyLine($num)
     }
     return $tmp;
 }
+
+
+//***********************************************************************************************
+// Функция подготовки информации со страницы товара
+//***********************************************************************************************	
+
+function get_tovar ($url) {
+	
+		global $ch;
+		global $site;
+		
+		$arr = array();
+		
+		curl_setopt($ch, CURLOPT_URL, $url);
+		
+		$html = curl_exec($ch);
+		
+		$dom = str_get_html($html);
+		
+		
+		if ($dom != null) {
+			
+			$container = $dom->find('.product-info .description', 0);
+			
+			$a = $container->find('a',0);
+			
+			$brand = $a->plaintext;		//Производитель
+			
+			$container = $dom->find('.product-info .image', 0);
+			
+			$a = $container->find('a',0);
+			
+			$image = $a->href;			//Картинка
+			//echo $brand . "<br>";
+			
+			$arr['brand'] = $brand;
+			$arr['image'] = $image;
+			
+		}
+	
+		return $arr;
+}
+
+
 	
 //***********************************************************************************************
 // Функция подготовки массива страниц с товарами по каталогу
@@ -137,11 +252,14 @@ function save_img ($img_url) {
 		global $save_dir;
 		global $ch;
 		
-		curl_setopt($ch, CURLOPT_URL, $img_url);
+		if ($img_download) {
 		
-		$img_file = curl_exec($ch);
+			curl_setopt($ch, CURLOPT_URL, $img_url);
+			
+			$img_file = curl_exec($ch);
 
-		file_put_contents($save_dir . basename($img_url), $img_file);
+			file_put_contents($save_dir . basename($img_url), $img_file);
+		}
 		
 }
 //***********************************************************************************************
@@ -231,6 +349,8 @@ function getItem($catalog_id = 0, $url) {
 						$str = $a->href;
 						sscanf(html_entity_decode($str), 'http://stl-partner.ru/index.php?route=product/product&path=%d&product_id=%d',$cat_num,$product_id);
 						
+						$name = $a->plaintext;
+						
 						$a = $item->find('.price',0);
 						$str_price = $a->plaintext;
 						
@@ -247,7 +367,9 @@ function getItem($catalog_id = 0, $url) {
 							//echo $site . $a->href . "<br>";			
 							$arr_tovar[$i]["link"] = $str;							// Ссылка на страницу товара
 							
-							$arr_tovar[$i]["price"] = $price;							// Цена товара
+							$arr_tovar[$i]["price"] = $price;						// Цена товара
+							
+							$arr_tovar[$i]["name"] = $name;						// Наименование товара
 						
 							$i = $i + 1;
 						}
@@ -259,5 +381,103 @@ function getItem($catalog_id = 0, $url) {
 		
 }	
 
+function start_excel () {
+	
+		global $objPHPExcel;
+
+		// Set document properties
+		$objPHPExcel->getProperties()->setCreator("Boy Gruv")
+									 ->setLastModifiedBy("Boy Gruv")
+									 ->setTitle("PHPExcel Document")
+									 ->setSubject("PHPExcel Document")
+									 ->setDescription("Document for PHPExcel, generated using PHP classes.")
+									 ->setKeywords("office PHPExcel php")
+									 ->setCategory("Result file");
+
+
+								 
+		// Заголовок страницы Products
+		$objPHPExcel->setActiveSheetIndex(0)
+					->setCellValue('A1', 'product_id')
+					->setCellValue('B1', 'name(en)')
+					->setCellValue('C1', 'name(ru)')
+					->setCellValue('D1', 'categories')
+					->setCellValue('E1', 'sku')
+					->setCellValue('F1', 'upc')
+					->setCellValue('G1', 'ean')
+					->setCellValue('H1', 'jan')
+					->setCellValue('I1', 'isbn')
+					->setCellValue('J1', 'mpn')
+					->setCellValue('K1', 'location')
+					->setCellValue('L1', 'quantity')
+					->setCellValue('M1', 'model')
+					->setCellValue('N1', 'manufacturer')
+					->setCellValue('O1', 'image_name')
+					->setCellValue('P1', 'shipping')
+					->setCellValue('Q1', 'price')
+					->setCellValue('R1', 'points')
+					->setCellValue('S1', 'date_added')
+					->setCellValue('T1', 'date_modified')
+					->setCellValue('U1', 'date_available')
+					->setCellValue('V1', 'weight')
+					->setCellValue('W1', 'weight_unit')
+					->setCellValue('X1', 'length')
+					->setCellValue('Y1', 'width')
+					->setCellValue('Z1', 'height')
+					->setCellValue('AA1', 'length_unit')
+					->setCellValue('AB1', 'status')
+					->setCellValue('AC1', 'tax_class_id')
+					->setCellValue('AD1', 'seo_keyword')
+					->setCellValue('AE1', 'description(en)')
+					->setCellValue('AF1', 'description(ru)')
+					->setCellValue('AG1', 'meta_title(en)')
+					->setCellValue('AH1', 'meta_title(ru)')
+					->setCellValue('AI1', 'meta_description(en)')
+					->setCellValue('AJ1', 'meta_description(ru)')
+					->setCellValue('AK1', 'meta_keywords(en)')
+					->setCellValue('AL1', 'meta_keywords(ru)')
+					->setCellValue('AM1', 'stock_status_id')
+					->setCellValue('AN1', 'store_ids')
+					->setCellValue('AO1', 'layout')
+					->setCellValue('AP1', 'related_ids')
+					->setCellValue('AQ1', 'tags(en)')
+					->setCellValue('AR1', 'tags(ru)')
+					->setCellValue('AS1', 'sort_order')
+					->setCellValue('AT1', 'subtract')
+					->setCellValue('AU1', 'minimum');
+	
+	
+}
+
+function end_excel () {
+	
+		global $objPHPExcel;
+	
+		// Rename worksheet
+		$objPHPExcel->getActiveSheet()->setTitle('Products');
+
+		//***********************************************************************************************************
+		//Добавляем новую страницу
+		$MyWorkSheet = new PHPExcel_Worksheet($objPHPExcel, 'AdditionalImages');
+		$objPHPExcel->addSheet($MyWorkSheet,1);
+
+		// Заголовок страницы AdditionalImages
+		$objPHPExcel->setActiveSheetIndex(1)
+					->setCellValue('A1', 'product_id')
+					->setCellValue('B1', 'image')
+					->setCellValue('C1', 'sort_order');
+					
+				// Set active sheet index to the first sheet, so Excel opens this as the first sheet
+		$objPHPExcel->setActiveSheetIndex(0);
+
+
+		// Save Excel 2007 file
+		$callStartTime = microtime(true);
+
+		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+		$objWriter->save(str_replace('.php', '.xlsx', __FILE__));
+	
+	
+}
 
 ?>

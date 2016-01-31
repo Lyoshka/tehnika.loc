@@ -5,7 +5,16 @@ function insert_html() {
 		
 		echo "<h2>Main Script</h2>";
 	
+		echo '<table>';
+		echo '<tr><td style="border-style:hidden;width:280px;vertical-align:bottom">';
+		echo '<form method = "post">';
+		echo '<input type = "submit" name = "button10" value = "Load Catalog: Все каталоги">';
+		echo '</td></tr></table>';
 
+		echo '<br>';
+		echo '*****************************************************************************************************<br>';
+		echo '<br>';
+		
 		echo '<table>';
 		echo '<tr><td style="border-style:hidden;width:280px;vertical-align:bottom">';
 		echo '<form method = "post">';
@@ -119,6 +128,15 @@ function insert_html() {
 	
 		}
 
+		if ( isset ( $_POST['button10'] )) {		
+			ob_start();
+			echo '<script>
+			document.all.proc10.innerHTML = "'. load_all () .' ";
+			</script>';
+			ob_flush();
+			flush();
+	
+		}
 }
 
 ?>
