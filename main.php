@@ -40,12 +40,53 @@
 
 function load_all () {
 	
+	// Авторизация на сайте
+	http_auth();
+	
 	global $arr_all;
+
+	$str = "<input disabled='disabled' type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
+	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
+	flush();
 	
 	for ($i=0;$i<count($arr_all);$i++) {
 		main ($i);
+		sleep(1);
 	}
 
+
+	$str = "<input type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
+	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
+
+	flush();
+	
+}
+
+
+
+//***********************************************************************************************
+// Загрузка одного каталога
+//***********************************************************************************************\
+
+function load_catalog ($id_catalog) {
+	
+	// Авторизация на сайте
+	http_auth();
+	
+	global $arr_all;
+
+	$str = "<input disabled='disabled' type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
+	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
+	flush();
+	
+	
+	main ($id_catalog);
+	//sleep(5);
+	
+	$str = "<input type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
+	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
+
+	flush();
 	
 }
 
@@ -64,6 +105,11 @@ function main($load_catalog) {
 		$arr_tovar = array();
 		$m = 0;	//счетчик для прогресс бара
 		
+		echo "Start load catalog: "  . $load_catalog . " " . date("H:i:s") . "<br>";
+		ob_flush();
+		flush();
+
+		
 		start_excel ();	// Подготовка Excel файла
 		
 		
@@ -72,7 +118,7 @@ function main($load_catalog) {
 		// Первый цикл получаем массив ссылок на страницы КАТАЛОГА (ID каталога + ссылка страницу каталога) по одной категории из $arr_all
 		
 		for ($i=0;$i<count($arr_1);$i++) {
-				
+						
 				//echo $arr_1[$i][0] . "   " . $arr_1[$i][1] ."<br>";		//ID каталога + ссылка страницу каталога
 				
 				$arr_2 = getItem($arr_1[$i][0],$arr_1[$i][1]);
@@ -80,6 +126,7 @@ function main($load_catalog) {
 				
 				//Второй цикл получаем массив ссылок на страницы ТОРАРА (ID каталога + ID товара + ссылка на страницу товара) по одной категории из $arr_all
 				for ($j=0;$j<count($arr_2);$j++) {
+				
 					$m = $m + 1;
 					$d = $m + 1;
 					
@@ -93,7 +140,7 @@ function main($load_catalog) {
 						->setCellValue('B'.$d, str_replace('&quot;','"',$arr_2[$j]['name']))
 						->setCellValue('C'.$d, str_replace('&quot;','"',$arr_2[$j]['name']))
 						->setCellValue('D'.$d, $arr_2[$j]['catalog_id'])
-						->setCellValue('L'.$d, '100')
+						->setCellValue('L'.$d, '1000')
 						->setCellValue('M'.$d, $arr_2[$j]['tovar_id'])
 						->setCellValue('N'.$d, $arr_tovar['brand'])
 						->setCellValue('O'.$d, '/catalog/' . basename($arr_tovar['image']))
@@ -121,14 +168,16 @@ function main($load_catalog) {
 					document.all.proc' . $load_catalog . '.innerHTML = "'. round((($i+1)*100/count($arr_1)),0)  .' % (' . $m . ')";
 					document.all.line' . $load_catalog . '.innerHTML = "'.CopyLine(($i+1)*100/count($arr_1)).'";
 					</script>';
-				ob_flush();
-				flush();
+
 	
 		}
 		
-		//var_dump($arr);
 		
 		end_excel ();	// Сохранение Excel файла
+
+		echo "Stop load catalog: "  . $load_catalog . " " . date("H:i:s") . "<br>";
+		ob_flush();
+		flush();
 
 		//Закрываем соеденение
 		//curl_close($ch);
@@ -345,6 +394,8 @@ function getItem($catalog_id = 0, $url) {
 				
 					foreach($container as $item){
 						
+						$quantity = null;
+						
 						$a = $item->find('.name a',0);
 						$str = $a->href;
 						sscanf(html_entity_decode($str), 'http://stl-partner.ru/index.php?route=product/product&path=%d&product_id=%d',$cat_num,$product_id);
@@ -354,7 +405,25 @@ function getItem($catalog_id = 0, $url) {
 						$a = $item->find('.price',0);
 						$str_price = $a->plaintext;
 						
+						/*
+						$a = $item->find('.stock',0);
+						$str_count = $a->plaintext;
+						sscanf(html_entity_decode($str_count), 'В наличии (%d)',$quantity);
+						
+						// Пропускаем товары которых нет
+											
+						if ($quantity == null) {
+							//$product_id = null;
+							$quantity = 0;
+						} */
+						
 						sscanf(html_entity_decode($str_price), '%d руб.',$price);
+						
+						// Пропускаем товары с нулевой стоимостью
+						if ($price == 0) {
+							$product_id = null;
+						}
+						
 						
 						if ( $product_id != null ) {
 											
@@ -369,7 +438,9 @@ function getItem($catalog_id = 0, $url) {
 							
 							$arr_tovar[$i]["price"] = $price;						// Цена товара
 							
-							$arr_tovar[$i]["name"] = $name;						// Наименование товара
+							$arr_tovar[$i]["name"] = $name;							// Наименование товара
+							
+							//$arr_tovar[$i]["quantity"] = $quantity;					// Количество товара
 						
 							$i = $i + 1;
 						}
@@ -467,17 +538,16 @@ function end_excel () {
 					->setCellValue('B1', 'image')
 					->setCellValue('C1', 'sort_order');
 					
-				// Set active sheet index to the first sheet, so Excel opens this as the first sheet
+		// Set active sheet index to the first sheet, so Excel opens this as the first sheet
 		$objPHPExcel->setActiveSheetIndex(0);
 
-
 		// Save Excel 2007 file
-		$callStartTime = microtime(true);
-
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
-		$objWriter->save(str_replace('.php', '.xlsx', __FILE__));
+		$objWriter->save('Product_' . date('Y-m-d') . '.xlsx');
 	
 	
 }
+
+
 
 ?>
