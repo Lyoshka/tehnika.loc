@@ -2,6 +2,7 @@
 //*****************************************************************************
 //  парсинг товаров сайта http://stl-partner.ru 
 //  Для сайта ТвояТехника.рф
+// /var/www/vhosts/u0005152.plsk.regruhosting.ru/httpdocs/shop/parser/index.php
 //*****************************************************************************
 
 
@@ -15,8 +16,8 @@
 	require_once dirname(__FILE__) . '/lib/PHPExcel.php';
 
 	
-	$save_dir = getcwd() . '/image/catalog/';		// Директория для сохранения файлов
-	$img_download = false;							// Скачивать картинки или нет		
+	$save_dir = getcwd() . '/../image/catalog/catalog/';		// Директория для сохранения файлов
+	$img_download = true;							// Скачивать картинки или нет		
 	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
 	$site = 'http://stl-partner.ru';
 	$objPHPExcel = new PHPExcel();
@@ -51,7 +52,6 @@ function load_all () {
 	
 	for ($i=0;$i<count($arr_all);$i++) {
 		main ($i);
-		sleep(1);
 	}
 
 
@@ -73,15 +73,16 @@ function load_catalog ($id_catalog) {
 	// Авторизация на сайте
 	http_auth();
 	
+	
 	global $arr_all;
 
 	$str = "<input disabled='disabled' type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
-	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
+	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';
+
 	flush();
 	
 	
 	main ($id_catalog);
-	//sleep(5);
 	
 	$str = "<input type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
 	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
@@ -96,7 +97,7 @@ function load_catalog ($id_catalog) {
 //***********************************************************************************************
 
 function main($load_catalog) {
-		//ob_start();
+		ob_start();
 		global $arr_all;
 		global $objPHPExcel;
 		
@@ -119,7 +120,12 @@ function main($load_catalog) {
 		
 		for ($i=0;$i<count($arr_1);$i++) {
 						
-				//echo $arr_1[$i][0] . "   " . $arr_1[$i][1] ."<br>";		//ID каталога + ссылка страницу каталога
+				/*echo $arr_1[$i][0] . "   " . $arr_1[$i][1] ."<br>";		//ID каталога + ссылка страницу каталога
+				ob_flush();
+				flush();
+				sleep(1);*/
+				
+				
 				
 				$arr_2 = getItem($arr_1[$i][0],$arr_1[$i][1]);
 
@@ -143,7 +149,7 @@ function main($load_catalog) {
 						->setCellValue('L'.$d, '1000')
 						->setCellValue('M'.$d, $arr_2[$j]['tovar_id'])
 						->setCellValue('N'.$d, $arr_tovar['brand'])
-						->setCellValue('O'.$d, '/catalog/' . basename($arr_tovar['image']))
+						->setCellValue('O'.$d, '/catalog/catalog/' . basename($arr_tovar['image']))
 						->setCellValue('P'.$d, 'yes')
 						->setCellValue('Q'.$d, $arr_2[$j]['price'])
 						->setCellValue('S'.$d, date('Y-m-d H:i:s'))
@@ -168,6 +174,9 @@ function main($load_catalog) {
 					document.all.proc' . $load_catalog . '.innerHTML = "'. round((($i+1)*100/count($arr_1)),0)  .' % (' . $m . ')";
 					document.all.line' . $load_catalog . '.innerHTML = "'.CopyLine(($i+1)*100/count($arr_1)).'";
 					</script>';
+					
+				ob_flush();
+				flush();
 
 	
 		}
@@ -225,13 +234,19 @@ function get_tovar ($url) {
 			
 			$container = $dom->find('.product-info .image', 0);
 			
+			if ($container != null) {
+				
 			$a = $container->find('a',0);
 			
 			$image = $a->href;			//Картинка
 			//echo $brand . "<br>";
+			$arr['image'] = $image;
+			
+			}
+
 			
 			$arr['brand'] = $brand;
-			$arr['image'] = $image;
+			
 			
 		}
 	
@@ -300,12 +315,14 @@ function save_img ($img_url) {
 		
 		global $save_dir;
 		global $ch;
+		global $img_download;
 		
 		if ($img_download) {
 		
 			curl_setopt($ch, CURLOPT_URL, $img_url);
 			
 			$img_file = curl_exec($ch);
+		
 
 			file_put_contents($save_dir . basename($img_url), $img_file);
 		}
