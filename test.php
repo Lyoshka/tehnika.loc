@@ -1,16 +1,15 @@
 <?php
 
-
-echo str_pad('',1024);
-@ob_flush();
-flush(); 
-
-
-
-for ($i=1; $i<5; $i++) {
-echo $i.') Delay 2 sec';
-flush();
-sleep(2);
+ob_implicit_flush(1);
+for($s='',$x=0;$x<3;$x++) {
+ob_start();
+echo 'data '.$i;
+$s = ob_get_contents();
+ob_end_flush();
+ob_end_clean();
+sleep(1);
 }
+
+
 
 ?> 

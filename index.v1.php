@@ -21,8 +21,6 @@
 	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
 	$site = 'http://stl-partner.ru';
 	$objPHPExcel = new PHPExcel();
-	$all_count = 0; 					//Общий счетчик для Excel таблицы
-	
 
 	$arr_all = array(
 						array("59","Мойки","http://stl-partner.ru/index.php?route=product/category&path=592"),
@@ -48,16 +46,14 @@ function load_all () {
 	
 	global $arr_all;
 
-
 	$str = "<input disabled='disabled' type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
 	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
 	flush();
 	
-	start_excel ();	// Подготовка Excel файла
 	for ($i=0;$i<count($arr_all);$i++) {
-		main ($i,1);
+		main ($i);
 	}
-	end_excel ();	// Сохранение Excel файла
+
 
 	$str = "<input type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
 	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
@@ -78,16 +74,15 @@ function load_catalog ($id_catalog) {
 	//http_auth();
 	
 	
-
+	global $arr_all;
 
 	$str = "<input disabled='disabled' type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
 	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';
 
 	flush();
 	
-	start_excel ();	// Подготовка Excel файла
+	
 	main ($id_catalog);
-	end_excel ();	// Сохранение Excel файла
 	
 	$str = "<input type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
 	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';	
@@ -101,26 +96,24 @@ function load_catalog ($id_catalog) {
 // Загрузка указанного каталога	
 //***********************************************************************************************
 
-function main($load_catalog,$load_all=0) {
+function main($load_catalog) {
 		ob_start();
 		global $arr_all;
 		global $objPHPExcel;
-		global $all_count;
 		
 		$arr_1 = array();
 		$arr_2 = array();
 		$arr_tovar = array();
-		
-		if ($load_all == 0) {
 		$m = 0;	//счетчик для прогресс бара
-		} else {
-			$m = $all_count;
-		}
 		
 		echo "Start load catalog: "  . $load_catalog . " " . date("H:i:s") . "<br>";
 		ob_flush();
 		flush();
 
+		
+		start_excel ();	// Подготовка Excel файла
+		
+		
 		$arr_1 = get_page_count($arr_all[$load_catalog][0],$arr_all[$load_catalog][2]);
 
 		// Первый цикл получаем массив ссылок на страницы КАТАЛОГА (ID каталога + ссылка страницу каталога) по одной категории из $arr_all
@@ -140,13 +133,12 @@ function main($load_catalog,$load_all=0) {
 				//Второй цикл получаем массив ссылок на страницы ТОРАРА (ID каталога + ID товара + ссылка на страницу товара) по одной категории из $arr_all
 				for ($j=0;$j<count($arr_2);$j++) {
 				
-				
 					$m = $m + 1;
 					$d = $m + 1;
 					
-					//$arr_tovar = get_tovar(html_entity_decode($arr_2[$j]['link']));
+					$arr_tovar = get_tovar(html_entity_decode($arr_2[$j]['link']));
 					
-					$image_file_name = save_img($arr_2[$j]['image']);		//Скачивает картинку товара
+					save_img($arr_tovar['image']);		//Скачивает картинку товара
 					
 					$objPHPExcel->setActiveSheetIndex(0)
 					
@@ -156,8 +148,8 @@ function main($load_catalog,$load_all=0) {
 						->setCellValue('D'.$d, $arr_2[$j]['catalog_id'])
 						->setCellValue('L'.$d, '1000')
 						->setCellValue('M'.$d, $arr_2[$j]['tovar_id'])
-						//->setCellValue('N'.$d, $arr_tovar['brand'])
-						->setCellValue('O'.$d, '/catalog/catalog/' . $image_file_name )
+						->setCellValue('N'.$d, $arr_tovar['brand'])
+						->setCellValue('O'.$d, '/catalog/catalog/' . basename($arr_tovar['image']))
 						->setCellValue('P'.$d, 'yes')
 						->setCellValue('Q'.$d, $arr_2[$j]['price'])
 						->setCellValue('S'.$d, date('Y-m-d H:i:s'))
@@ -189,11 +181,12 @@ function main($load_catalog,$load_all=0) {
 	
 		}
 		
-	
+		
+		end_excel ();	// Сохранение Excel файла
+
 		echo "Stop load catalog: "  . $load_catalog . " " . date("H:i:s") . "<br>";
 		ob_flush();
 		flush();
-		$all_count = $m;
 
 		//Закрываем соеденение
 		//curl_close($ch);
@@ -324,40 +317,17 @@ function save_img ($img_url) {
 		global $ch;
 		global $img_download;
 		
-		$image_file = $save_dir . basename($img_url);
-		
-		if ($img_download and !file_exists($image_file)) {
+		if ($img_download) {
 		
 			curl_setopt($ch, CURLOPT_URL, $img_url);
 			
 			$img_file = curl_exec($ch);
-			
-			$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			
 		
-			if ($status == '404') {
-			
-				$img_url = dirname($img_url) . "/no_image-500x500.jpg";
-				
-				$image_file = $save_dir . basename($img_url);
-				
-				if (!file_exists($image_file)) {
-					curl_setopt($ch, CURLOPT_URL, $img_url);
-			
-					$img_file = curl_exec($ch);
-				}
-				
-			}
-			
-			if (!file_exists($image_file)) {
-				file_put_contents($save_dir . basename($img_url), $img_file);
-			}
+
+			file_put_contents($save_dir . basename($img_url), $img_file);
 		}
 		
-		return basename($img_url);
-		
 }
-
 //***********************************************************************************************
 
 
@@ -452,12 +422,6 @@ function getItem($catalog_id = 0, $url) {
 						$a = $item->find('.price',0);
 						$str_price = $a->plaintext;
 						
-						$a = $item->find('.image img',0);
-						$str_image = $a->attr['src'];
-						
-						$image = dirname($str_image) . "/" . $product_id . "-500x500.jpg";
-						
-
 						/*
 						$a = $item->find('.stock',0);
 						$str_count = $a->plaintext;
@@ -493,9 +457,7 @@ function getItem($catalog_id = 0, $url) {
 							
 							$arr_tovar[$i]["name"] = $name;							// Наименование товара
 							
-							$arr_tovar[$i]["image"] = $image;						// Ссылка на картинку товара
-							
-							//$arr_tovar[$i]["quantity"] = $quantity;				// Количество товара
+							//$arr_tovar[$i]["quantity"] = $quantity;					// Количество товара
 						
 							$i = $i + 1;
 						}
