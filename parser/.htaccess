@@ -2,7 +2,7 @@ AddDefaultCharset UTF-8
 
 AuthType Basic
 AuthName "Input password"
-AuthUserFile D:\OpenServer\domains\tehnika.loc\parser\.htpasswd
+AuthUserFile /var/www/vhosts/u0005152.plsk.regruhosting.ru/httpdocs/shop/parser/.htpasswd
 Require valid-user
 
 <Files .htpasswd>
