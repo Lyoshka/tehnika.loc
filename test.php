@@ -1,15 +1,16 @@
 <?php
 
-ob_implicit_flush(1);
-for($s='',$x=0;$x<3;$x++) {
-ob_start();
-echo 'data '.$i;
-$s = ob_get_contents();
-ob_end_flush();
-ob_end_clean();
+//phpinfo();
+
+ob_implicit_flush(TRUE);
+
+
+for($i=0;$i<5;$i++)
+{
+
+echo "1111";
 sleep(1);
+
 }
-
-
 
 ?> 

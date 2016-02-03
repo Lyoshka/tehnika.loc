@@ -6,9 +6,14 @@ AuthUserFile /var/www/vhosts/u0005152.plsk.regruhosting.ru/httpdocs/shop/parser/
 Require valid-user
 
 <Files .htpasswd>
-   deny from all  #запрет доступа из браузера к .htpasswd
+   deny from all  
 </Files>
 
 <Files *.*>
    require user admin
 </Files>
+
+
+php_value memory_limit 368M
+php_value max_execution_time 0
+php_value max_input_time -1

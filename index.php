@@ -16,13 +16,14 @@
 	require_once dirname(__FILE__) . '/lib/PHPExcel.php';
 
 	
-	//$save_dir = getcwd() . '/../image/catalog/catalog/';		// Директория для сохранения файлов
-	$save_dir = getcwd() . '/image/catalog/catalog/';	
+	$save_dir = getcwd() . '/../image/catalog/catalog/';		// Директория для сохранения файлов
+	//$save_dir = getcwd() . '/image/catalog/catalog/';	
 	$img_download = true;							// Скачивать картинки или нет		
 	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
 	$site = 'http://stl-partner.ru';
 	$objPHPExcel = new PHPExcel();
-	$all_count = 0; 					//Общий счетчик для Excel таблицы
+	$all_count = 0; 					//Общий счетчик для Excel таблицы. Товары
+	$all_count_attr = 2; 				//Общий счетчик для Excel таблицы. Аттрибуты
 	
 
 	$arr_all = array(
@@ -32,6 +33,7 @@
 						array("62","Духовые шкафы","http://stl-partner.ru/index.php?route=product/category&path=617"),
 						array("63","Вытяжки","http://stl-partner.ru/index.php?route=product/category&path=641")
 	);
+	
 
 	//Всавка HTML кода
     insert_html();
@@ -107,6 +109,7 @@ function main($load_catalog,$load_all=0) {
 		global $arr_all;
 		global $objPHPExcel;
 		global $all_count;
+		global $all_count_attr;
 		
 		$arr_1 = array();
 		$arr_2 = array();
@@ -114,8 +117,10 @@ function main($load_catalog,$load_all=0) {
 		
 		if ($load_all == 0) {
 		$m = 0;	//счетчик для прогресс бара
+		$attr_count = 2;	//счетчик атрибутов
 		} else {
 			$m = $all_count;
+			$attr_count = $all_count_attr;
 		}
 		
 		echo "Start load catalog: "  . $load_catalog . " " . date("H:i:s") . "<br>";
@@ -141,11 +146,8 @@ function main($load_catalog,$load_all=0) {
 				//Второй цикл получаем массив ссылок на страницы ТОРАРА (ID каталога + ID товара + ссылка на страницу товара) по одной категории из $arr_all
 				for ($j=0;$j<count($arr_2);$j++) {
 				
-				
 					$m = $m + 1;
 					$d = $m + 1;
-					
-					//$arr_tovar = get_tovar(html_entity_decode($arr_2[$j]['link']));
 					
 					$image_file_name = save_img($arr_2[$j]['image']);		//Скачивает картинку товара
 					
@@ -177,6 +179,21 @@ function main($load_catalog,$load_all=0) {
 					
 					//echo $arr_2[$j]['catalog_id'] . " " . $arr_2[$j]['tovar_id'] . " " . $arr_2[$j]['price'] . " " . $arr_2[$j]['name'] . " " . $arr_tovar['brand'] . " " . $arr_2[$j]['link'] . "<br>"; // ID каталога + ID товара + ссылка на страницу товара
 					
+					$arr_tovar = get_tovar(html_entity_decode($arr_2[$j]['link']));
+					
+					for($x=0;$x<count($arr_tovar);$x++) {
+					
+					$objPHPExcel->setActiveSheetIndex(1)
+					
+						->setCellValue('A'.$attr_count, $arr_2[$j]['tovar_id'])
+						->setCellValue('B'.$attr_count, 'Характеристики')
+						->setCellValue('C'.$attr_count, $arr_tovar[$x]['Attribute'])
+						->setCellValue('E'.$attr_count, $arr_tovar[$x]['Value']);
+						
+						$attr_count = $attr_count + 1;
+	
+					}
+					
 				}
 				
 				echo '<script>
@@ -195,6 +212,7 @@ function main($load_catalog,$load_all=0) {
 		ob_flush();
 		flush();
 		$all_count = $m;
+		$all_count_attr = $attr_count;
 
 		//Закрываем соеденение
 		//curl_close($ch);
@@ -221,7 +239,6 @@ function CopyLine($num)
 function get_tovar ($url) {
 	
 		global $ch;
-		global $site;
 		
 		$arr = array();
 		
@@ -230,37 +247,35 @@ function get_tovar ($url) {
 		$html = curl_exec($ch);
 		
 		$dom = str_get_html($html);
-		
+		$i=0;
 		
 		if ($dom != null) {
 			
-			$container = $dom->find('.product-info .description', 0);
+			$container = $dom->find('.attribute tbody tr');
 			
-			$a = $container->find('a',0);
+			foreach($container as $item){
 			
-			$brand = $a->plaintext;		//Производитель
-			
-			$container = $dom->find('.product-info .image', 0);
-			
-			if ($container != null) {
+				$a = $item->find('td',0);
+				$arrt = $a->plaintext;
 				
-			$a = $container->find('a',0);
-			
-			$image = $a->href;			//Картинка
-			//echo $brand . "<br>";
-			$arr['image'] = $image;
-			
-			}
-
-			
-			$arr['brand'] = $brand;
-			
+				if ($arrt != 'Характеристики') {
+					
+					$arr[$i]['Attribute'] = $arrt;
+					$a = $item->find('td',1);
+					$arr[$i]['Value'] = $a->plaintext;
+					
+					$i = $i + 1;
+					
+				}
+			}		
 			
 		}
 	
+		$dom->clear();
+		unset($dom);
+	
 		return $arr;
 }
-
 
 	
 //***********************************************************************************************
@@ -309,6 +324,9 @@ function get_page_count($id_cat,$url){
 		
 	} 
 	
+		$dom->clear();
+		unset($dom);
+		
 		return $arr_page;
 	
 }
@@ -504,6 +522,11 @@ function getItem($catalog_id = 0, $url) {
 		} else {
 			echo "Сервер <b>" . $site . "</b> не отвечает :( <br>";
 		}	
+		
+		$dom->clear();
+		unset($dom);
+
+		
 		return $arr_tovar;
 		
 }	
@@ -573,26 +596,31 @@ function start_excel () {
 					->setCellValue('AT1', 'subtract')
 					->setCellValue('AU1', 'minimum');
 	
-	
+		// Rename worksheet
+		$objPHPExcel->getActiveSheet()->setTitle('Products');
+
+		//***********************************************************************************************************
+		//Добавляем новую страницу
+		$MyWorkSheet = new PHPExcel_Worksheet($objPHPExcel, 'ProductAttributes');
+		$objPHPExcel->addSheet($MyWorkSheet,1);
+
+		// Заголовок страницы AdditionalImages
+		$objPHPExcel->setActiveSheetIndex(1)
+					->setCellValue('A1', 'product_id')
+					->setCellValue('B1', 'attribute_group')
+					->setCellValue('C1', 'attribute')
+					->setCellValue('D1', 'text(en)')
+					->setCellValue('E1', 'text(ru)');
+
+		// Set active sheet index to the first sheet, so Excel opens this as the first sheet
+		$objPHPExcel->setActiveSheetIndex(0);
+
 }
 
 function end_excel () {
 	
 		global $objPHPExcel;
 	
-		// Rename worksheet
-		$objPHPExcel->getActiveSheet()->setTitle('Products');
-
-		//***********************************************************************************************************
-		//Добавляем новую страницу
-		$MyWorkSheet = new PHPExcel_Worksheet($objPHPExcel, 'AdditionalImages');
-		$objPHPExcel->addSheet($MyWorkSheet,1);
-
-		// Заголовок страницы AdditionalImages
-		$objPHPExcel->setActiveSheetIndex(1)
-					->setCellValue('A1', 'product_id')
-					->setCellValue('B1', 'image')
-					->setCellValue('C1', 'sort_order');
 					
 		// Set active sheet index to the first sheet, so Excel opens this as the first sheet
 		$objPHPExcel->setActiveSheetIndex(0);
