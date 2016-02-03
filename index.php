@@ -16,7 +16,8 @@
 	require_once dirname(__FILE__) . '/lib/PHPExcel.php';
 
 	
-	$save_dir = getcwd() . '/../image/catalog/catalog/';		// Директория для сохранения файлов
+	//$save_dir = getcwd() . '/../image/catalog/catalog/';		// Директория для сохранения файлов
+	$save_dir = getcwd() . '/image/catalog/catalog/';	
 	$img_download = true;							// Скачивать картинки или нет		
 	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
 	$site = 'http://stl-partner.ru';
