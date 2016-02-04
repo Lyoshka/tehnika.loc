@@ -16,12 +16,14 @@
 	require_once dirname(__FILE__) . '/lib/PHPExcel.php';
 
 	
-	$save_dir = getcwd() . '/../image/catalog/catalog/';		// Директория для сохранения файлов
-	$img_download = true;							// Скачивать картинки или нет		
+	$save_dir = getcwd() . '/image/catalog/catalog/';		// Директория для сохранения файлов
+	//$save_dir = getcwd() . '/image/catalog/catalog/';	
+	$img_download = false;							// Скачивать картинки или нет		
 	$k = 3;											// Индекс в массиве $arr_all по которому производимм выборку
 	$site = 'http://stl-partner.ru';
 	$objPHPExcel = new PHPExcel();
-	$all_count = 0; 					//Общий счетчик для Excel таблицы
+	$all_count = 0; 					//Общий счетчик для Excel таблицы. Товары
+	$all_count_attr = 2; 				//Общий счетчик для Excel таблицы. Аттрибуты
 	
 
 	$arr_all = array(
@@ -31,6 +33,7 @@
 						array("62","Духовые шкафы","http://stl-partner.ru/index.php?route=product/category&path=617"),
 						array("63","Вытяжки","http://stl-partner.ru/index.php?route=product/category&path=641")
 	);
+	
 
 	//Всавка HTML кода
     insert_html();
@@ -79,7 +82,6 @@ function load_catalog ($id_catalog) {
 	
 	
 
-
 	$str = "<input disabled='disabled' type = 'submit' name = 'button11' value = 'Скачать Excel файл'>";
 	echo '<script>document.all.proc20.innerHTML = "' . $str . '"</script>';
 
@@ -102,19 +104,25 @@ function load_catalog ($id_catalog) {
 //***********************************************************************************************
 
 function main($load_catalog,$load_all=0) {
-		ob_start();
+		
 		global $arr_all;
 		global $objPHPExcel;
 		global $all_count;
+		global $all_count_attr;
 		
 		$arr_1 = array();
 		$arr_2 = array();
 		$arr_tovar = array();
 		
+		ob_start();
+
+		
 		if ($load_all == 0) {
 		$m = 0;	//счетчик для прогресс бара
+		$attr_count = 2;	//счетчик атрибутов
 		} else {
 			$m = $all_count;
+			$attr_count = $all_count_attr;
 		}
 		
 		echo "Start load catalog: "  . $load_catalog . " " . date("H:i:s") . "<br>";
@@ -140,47 +148,21 @@ function main($load_catalog,$load_all=0) {
 				//Второй цикл получаем массив ссылок на страницы ТОРАРА (ID каталога + ID товара + ссылка на страницу товара) по одной категории из $arr_all
 				for ($j=0;$j<count($arr_2);$j++) {
 				
-				
 					$m = $m + 1;
 					$d = $m + 1;
 					
-					//$arr_tovar = get_tovar(html_entity_decode($arr_2[$j]['link']));
-					
-					$image_file_name = save_img($arr_2[$j]['image']);		//Скачивает картинку товара
-					
-					$objPHPExcel->setActiveSheetIndex(0)
-					
-						->setCellValue('A'.$d, $arr_2[$j]['tovar_id'])
-						->setCellValue('B'.$d, str_replace('&quot;','"',$arr_2[$j]['name']))
-						->setCellValue('C'.$d, str_replace('&quot;','"',$arr_2[$j]['name']))
-						->setCellValue('D'.$d, $arr_2[$j]['catalog_id'])
-						->setCellValue('L'.$d, '1000')
-						->setCellValue('M'.$d, $arr_2[$j]['tovar_id'])
-						//->setCellValue('N'.$d, $arr_tovar['brand'])
-						->setCellValue('O'.$d, '/catalog/catalog/' . $image_file_name )
-						->setCellValue('P'.$d, 'yes')
-						->setCellValue('Q'.$d, $arr_2[$j]['price'])
-						->setCellValue('S'.$d, date('Y-m-d H:i:s'))
-						->setCellValue('T'.$d, date('Y-m-d H:i:s'))
-						->setCellValue('U'.$d, date('Y-m-d'))
-						->setCellValue('AB'.$d, 'true')
-						->setCellValue('AB'.$d, 'true')
-						->setCellValue('AC'.$d, '0')
-						//->setCellValue('AE'.$d, $arr[$j]["memo1"])
-						//->setCellValue('AF'.$d, $arr[$j]["memo1"])
-						->setCellValue('AM'.$d, '7')
-						->setCellValue('AN'.$d, '0')
-						->setCellValue('AS'.$d, '0')
-						->setCellValue('AT'.$d, 'true')
-						->setCellValue('AU'.$d, '1');
 					
 					//echo $arr_2[$j]['catalog_id'] . " " . $arr_2[$j]['tovar_id'] . " " . $arr_2[$j]['price'] . " " . $arr_2[$j]['name'] . " " . $arr_tovar['brand'] . " " . $arr_2[$j]['link'] . "<br>"; // ID каталога + ID товара + ссылка на страницу товара
 					
+										
+					
 				}
+
+				$str_pr = "<progress max='100' value='" . round((($i+1)*100/count($arr_1)),0)  . "'>";
 				
 				echo '<script>
 					document.all.proc' . $load_catalog . '.innerHTML = "'. round((($i+1)*100/count($arr_1)),0)  .' % (' . $m . ')";
-					document.all.line' . $load_catalog . '.innerHTML = "'.CopyLine(($i+1)*100/count($arr_1)).'";
+					document.all.progress' . $load_catalog . '.innerHTML = "' . $str_pr . '";
 					</script>';
 					
 				ob_flush();
@@ -194,11 +176,13 @@ function main($load_catalog,$load_all=0) {
 		ob_flush();
 		flush();
 		$all_count = $m;
+		$all_count_attr = $attr_count;
 
 		//Закрываем соеденение
 		//curl_close($ch);
 		
 		ob_end_clean(); 
+	
 }
 		
 function CopyLine($num)
@@ -220,7 +204,6 @@ function CopyLine($num)
 function get_tovar ($url) {
 	
 		global $ch;
-		global $site;
 		
 		$arr = array();
 		
@@ -229,37 +212,35 @@ function get_tovar ($url) {
 		$html = curl_exec($ch);
 		
 		$dom = str_get_html($html);
-		
+		$i=0;
 		
 		if ($dom != null) {
 			
-			$container = $dom->find('.product-info .description', 0);
+			$container = $dom->find('.attribute tbody tr');
 			
-			$a = $container->find('a',0);
+			foreach($container as $item){
 			
-			$brand = $a->plaintext;		//Производитель
-			
-			$container = $dom->find('.product-info .image', 0);
-			
-			if ($container != null) {
+				$a = $item->find('td',0);
+				$arrt = $a->plaintext;
 				
-			$a = $container->find('a',0);
-			
-			$image = $a->href;			//Картинка
-			//echo $brand . "<br>";
-			$arr['image'] = $image;
-			
-			}
-
-			
-			$arr['brand'] = $brand;
-			
+				if ($arrt != 'Характеристики') {
+					
+					$arr[$i]['Attribute'] = $arrt;
+					$a = $item->find('td',1);
+					$arr[$i]['Value'] = $a->plaintext;
+					
+					$i = $i + 1;
+					
+				}
+			}		
 			
 		}
 	
+		$dom->clear();
+		unset($dom);
+	
 		return $arr;
 }
-
 
 	
 //***********************************************************************************************
@@ -308,6 +289,9 @@ function get_page_count($id_cat,$url){
 		
 	} 
 	
+		$dom->clear();
+		unset($dom);
+		
 		return $arr_page;
 	
 }
@@ -503,6 +487,11 @@ function getItem($catalog_id = 0, $url) {
 		} else {
 			echo "Сервер <b>" . $site . "</b> не отвечает :( <br>";
 		}	
+		
+		$dom->clear();
+		unset($dom);
+
+		
 		return $arr_tovar;
 		
 }	
@@ -572,26 +561,31 @@ function start_excel () {
 					->setCellValue('AT1', 'subtract')
 					->setCellValue('AU1', 'minimum');
 	
-	
+		// Rename worksheet
+		$objPHPExcel->getActiveSheet()->setTitle('Products');
+
+		//***********************************************************************************************************
+		//Добавляем новую страницу
+		$MyWorkSheet = new PHPExcel_Worksheet($objPHPExcel, 'ProductAttributes');
+		$objPHPExcel->addSheet($MyWorkSheet,1);
+
+		// Заголовок страницы AdditionalImages
+		$objPHPExcel->setActiveSheetIndex(1)
+					->setCellValue('A1', 'product_id')
+					->setCellValue('B1', 'attribute_group')
+					->setCellValue('C1', 'attribute')
+					->setCellValue('D1', 'text(en)')
+					->setCellValue('E1', 'text(ru)');
+
+		// Set active sheet index to the first sheet, so Excel opens this as the first sheet
+		$objPHPExcel->setActiveSheetIndex(0);
+
 }
 
 function end_excel () {
 	
 		global $objPHPExcel;
 	
-		// Rename worksheet
-		$objPHPExcel->getActiveSheet()->setTitle('Products');
-
-		//***********************************************************************************************************
-		//Добавляем новую страницу
-		$MyWorkSheet = new PHPExcel_Worksheet($objPHPExcel, 'AdditionalImages');
-		$objPHPExcel->addSheet($MyWorkSheet,1);
-
-		// Заголовок страницы AdditionalImages
-		$objPHPExcel->setActiveSheetIndex(1)
-					->setCellValue('A1', 'product_id')
-					->setCellValue('B1', 'image')
-					->setCellValue('C1', 'sort_order');
 					
 		// Set active sheet index to the first sheet, so Excel opens this as the first sheet
 		$objPHPExcel->setActiveSheetIndex(0);
