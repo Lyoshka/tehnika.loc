@@ -1,2 +1,5 @@
 AddDefaultCharset UTF-8
 
+php_value memory_limit 254M
+php_value max_execution_time 600
+

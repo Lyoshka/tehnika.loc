@@ -2,7 +2,7 @@ AddDefaultCharset UTF-8
 
 AuthType Basic
 AuthName "Input password"
-AuthUserFile /var/www/vhosts/u0005152.plsk.regruhosting.ru/httpdocs/shop/parser/.htpasswd
+AuthUserFile /var/www/vhosts/u0005152.plsk.regruhosting.ru/httpdocs/shop/parser2/.htpasswd
 Require valid-user
 
 <Files .htpasswd>

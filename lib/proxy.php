@@ -1,12 +1,6 @@
 <?php
 
-	//$proxy = '188.165.141.151:80';  	//Finland
-	//$proxy = '46.37.193.74:8080';		//Ukraine
-	//$proxy = '94.23.200.49:3128';		//France
-	//$proxy = '86.57.177.11:1080';		//Belarus
-
-$proxy = '10.247.19.22:9090';
-$proxyauth = 'spb\eav:recf40vehf}|';
+	
 
 
 	$login  = 'admiral@mebelkerch.ru';
@@ -25,8 +19,6 @@ $proxyauth = 'spb\eav:recf40vehf}|';
 	curl_setopt($ch, CURLOPT_POST, true);
 	curl_setopt($ch, CURLOPT_POSTFIELDS,"email=".$login."&password=".$pass);
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-	curl_setopt($ch, CURLOPT_PROXY, $proxy);
-	curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxyauth);
 
 
 	$ret = curl_exec($ch);
